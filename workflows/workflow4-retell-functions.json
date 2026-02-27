@@ -1,0 +1,247 @@
+{
+  "name": "US Leads - Retell Functions",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "retell-functions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "function-webhook",
+      "name": "Function Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "retell-functions"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract function name and arguments from Retell request\nconst body = $input.first().json;\nconst funcName = (body.name || body.function_name || '').toLowerCase().trim();\nconst args = body.arguments || body.args || {};\n\nreturn [{\n  json: {\n    function_name: funcName,\n    arguments: args,\n    is_check_calendar: funcName === 'check_calendar',\n    is_book_demo: funcName === 'book_demo',\n    is_get_pricing: funcName === 'get_pricing'\n  }\n}];"
+      },
+      "id": "parse-function-request",
+      "name": "Parse Function Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.is_check_calendar }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_calendar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.is_book_demo }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "book_demo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.is_get_pricing }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "get_pricing"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-by-function",
+      "name": "Route by Function Name",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return next available demo slots\nconst now = new Date();\nconst slots = [];\n\nfor (let i = 1; i <= 7; i++) {\n  const date = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);\n  if (date.getDay() === 0 || date.getDay() === 6) continue;\n  const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });\n  slots.push(`${dateStr} at 10:00 AM EST`);\n  slots.push(`${dateStr} at 2:00 PM EST`);\n  if (slots.length >= 6) break;\n}\n\nreturn [{\n  json: {\n    result: {\n      available_slots: slots.join(', '),\n      message: `Available demo times: ${slots.join(', ')}. Which works best for you?`\n    }\n  }\n}];"
+      },
+      "id": "check-calendar",
+      "name": "Check Calendar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, -300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const args = $('Parse Function Request').first().json.arguments || {};\nconst requestedTime = args.time || args.slot || 'the requested time';\nconst contactName = args.name || args.contact_name || '';\nconst contactEmail = args.email || args.contact_email || '';\n\nreturn [{\n  json: {\n    result: {\n      success: true,\n      message: `Demo booked for ${requestedTime}. ${contactEmail ? 'A confirmation will be sent to ' + contactEmail + '.' : 'We will send a confirmation shortly.'} Looking forward to showing you EventTitans!`,\n      booked_time: requestedTime,\n      contact_name: contactName,\n      contact_email: contactEmail\n    }\n  }\n}];"
+      },
+      "id": "book-demo",
+      "name": "Book Demo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    result: {\n      message: \"EventTitans pricing depends on event size. For events up to 5,000 attendees, plans start around $500. For larger events up to 50,000 attendees, pricing is customized. We also offer per-ticket pricing options. I'd recommend scheduling a quick demo so we can give you an exact quote based on your event details.\",\n      pricing_tiers: {\n        small: \"Up to 5,000 attendees - from $500\",\n        medium: \"5,000 to 20,000 attendees - custom\",\n        large: \"20,000+ attendees - enterprise pricing\"\n      }\n    }\n  }\n}];"
+      },
+      "id": "get-pricing",
+      "name": "Get Pricing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    result: {\n      message: \"I don't have that information right now, but I can have our team follow up with you on that specific question.\"\n    }\n  }\n}];"
+      },
+      "id": "unknown-function",
+      "name": "Unknown Function",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result) }}",
+        "options": {}
+      },
+      "id": "respond-calendar",
+      "name": "Respond (Calendar)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, -300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result) }}",
+        "options": {}
+      },
+      "id": "respond-demo",
+      "name": "Respond (Demo)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result) }}",
+        "options": {}
+      },
+      "id": "respond-pricing",
+      "name": "Respond (Pricing)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result) }}",
+        "options": {}
+      },
+      "id": "respond-unknown",
+      "name": "Respond (Unknown)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Function Webhook": {
+      "main": [
+        [{"node": "Parse Function Request", "type": "main", "index": 0}]
+      ]
+    },
+    "Parse Function Request": {
+      "main": [
+        [{"node": "Route by Function Name", "type": "main", "index": 0}]
+      ]
+    },
+    "Route by Function Name": {
+      "main": [
+        [{"node": "Check Calendar", "type": "main", "index": 0}],
+        [{"node": "Book Demo", "type": "main", "index": 0}],
+        [{"node": "Get Pricing", "type": "main", "index": 0}],
+        [{"node": "Unknown Function", "type": "main", "index": 0}]
+      ]
+    },
+    "Check Calendar": {
+      "main": [
+        [{"node": "Respond (Calendar)", "type": "main", "index": 0}]
+      ]
+    },
+    "Book Demo": {
+      "main": [
+        [{"node": "Respond (Demo)", "type": "main", "index": 0}]
+      ]
+    },
+    "Get Pricing": {
+      "main": [
+        [{"node": "Respond (Pricing)", "type": "main", "index": 0}]
+      ]
+    },
+    "Unknown Function": {
+      "main": [
+        [{"node": "Respond (Unknown)", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {"name": "EventTitans"},
+    {"name": "Retell AI"},
+    {"name": "Cold Calling"}
+  ]
+}

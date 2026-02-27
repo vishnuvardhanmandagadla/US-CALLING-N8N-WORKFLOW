@@ -1,0 +1,65 @@
+Q: Website builder?
+A: No-code drag-and-drop. Fully branded, mobile-responsive, white-label with custom domains. An organizer can have a professional event site live in minutes without touching code.
+
+Q: Ticketing and registration?
+A: Multiple ticket types with different access levels — VIP, general, sponsors, speakers. Custom forms, group tickets, coupon codes, upselling options like parking and hotels. Flexible fee models.
+
+Q: Sponsor and speaker onboarding?
+A: Speakers apply through a form and their profiles auto-populate. Sponsors get self-managed booths with real-time ROI dashboards. Cuts the back-and-forth dramatically.
+
+Q: Session management?
+A: Digital agenda builder that syncs everywhere — website, app, on-site displays. Capacity limits, Zoom integration, live chat and polls during sessions, auto-generated certificates.
+
+Q: CRM?
+A: Built into the platform. Contacts auto-populate from registration, lead classification, multi-channel outreach through email, WhatsApp, surveys. Full engagement tracking tied to event history.
+
+Q: Rewards Engine?
+A: Gamification system — attendees earn points for booth visits, sessions, surveys. Leaderboards, e-gifts, raffles, marketplace coupons. Turns passive attendees into active participants.
+
+Q: Marketing tools?
+A: Email, WhatsApp, SMS, push notifications. Campaign analytics with open rates and engagement. All from one dashboard.
+
+Q: Check-in?
+A: QR scan at the door, badge prints on demand, they walk in. Handles walk-ins and group check-in too. Takes seconds, not minutes.
+
+Q: Badge printing?
+A: On-demand, color-coded by role, QR embedded for session access and networking. Scan, print, done.
+
+Q: Mobile app and networking?
+A: Personalized schedules, push notifications, AI matchmaking, digital business card exchange, booth tracking. Keeps attendees engaged before, during, and after.
+
+Q: Live polls?
+A: Launch during sessions, instant results on screen, responses sync to CRM. Rewards for participating.
+
+Q: Digital Session Board?
+A: Live agenda on screens and devices. Real-time updates if schedule changes. Sponsor showcases built in.
+
+Q: Digital Business Cards?
+A: Attendees create and share digitally via QR or WhatsApp. Auto-syncs to CRM. No more lost paper cards.
+
+Q: Trivia and games?
+A: Live trivia with auto-scoring and leaderboards. Ties into Rewards Engine. Keeps energy up between sessions.
+
+Q: Evaluator?
+A: Quizzes, exams, skill evaluations with auto-grading. Perfect for certifications at events.
+
+Q: Live Q&A?
+A: Moderated, audience votes questions up, anonymous option. Exportable reports after.
+
+Q: Surveys?
+A: Post-event surveys, multi-language, templates, CRM-stored responses. Rewards to incentivize completion.
+
+Q: Analytics?
+A: Full picture — attendance, revenue, individual activity, real-time event data, session ratings, sponsor dashboards. Everything in one hub.
+
+Q: Integrations?
+A: 5,000+ apps through Zapier. Native Zoom. Custom API for enterprise teams with full documentation.
+
+Q: Security?
+A: Enterprise-grade — encryption, role-based permissions, QR access control, chat moderation. International compliance standards.
+
+Q: Hotel booking?
+A: Embeddable widget on the event site. Negotiated hotel rates. Sponsors can bundle tickets with stays.
+
+Q: Contests?
+A: Submission management, auto-judging with weighted criteria, audience voting, rewards integration. Only platform that auto-judges contest submissions.

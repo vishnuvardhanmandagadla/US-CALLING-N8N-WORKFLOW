@@ -1,0 +1,68 @@
+Q: What does EventTitans do?
+A: EventTitans is an all-in-one event management platform with 150+ features. It covers ticketing, registration, QR check-in, on-demand badge printing, built-in CRM, email and WhatsApp marketing, sponsor dashboards, mobile networking app, gamification, and analytics — all from one dashboard. Over 2,000 companies use it, from small workshops to expos with 50,000+ attendees.
+
+Q: What features are best for an expo or trade show?
+A: Booth and exhibitor management, automated lead capture, QR check-in with on-demand badge printing, sponsor ROI dashboards with real-time analytics, networking app with AI matchmaking, and gamification to drive booth traffic. EventTitans ran the Poultry India Expo with 50,000+ attendees.
+
+Q: What features are best for a corporate conference?
+A: Session management with capacity limits, speaker onboarding with auto-populated profiles, live Q&A and polls during sessions, digital agenda synced to website and app, auto-generated certificates, and full attendance analytics.
+
+Q: What features are best for a nonprofit fundraiser?
+A: Combined registration and donation collection in one flow, donor CRM, merchandise sales, online auction with real-time bidding, and marketing tools. Everything nonprofits need without separate systems.
+
+Q: What features are best for a car expo or auto show?
+A: Flexible ticketing with VIP and general tiers, QR check-in so attendees walk in within seconds, sponsor booths with real-time visitor analytics, gamification features like leaderboards and spin-to-win to keep attendees engaged, and a mobile app for personalized schedules and networking.
+
+Q: How does QR check-in and badge printing work?
+A: When someone registers, they get a unique QR code. At the event, staff scan it with the check-in app — badge prints on demand in seconds. Color-coded by role. Handles walk-ins and group check-in too. No pre-printed badges, no lines, no chaos.
+
+Q: How does ticketing and registration work?
+A: Multiple ticket types — VIP, general, sponsor, speaker — each with different access levels. Custom registration forms with smart logic. Group tickets, coupon codes, upselling for add-ons like parking or hotel. Three fee models so the organizer chooses who absorbs transaction costs.
+
+Q: How does the mobile app work?
+A: Attendees get personalized schedules, real-time push notifications, AI matchmaking to connect with relevant people, digital business card exchange, and live session access — all from their phone.
+
+Q: How do sponsor dashboards work?
+A: Sponsors manage their own virtual booths. They see real-time analytics — booth traffic, engagement metrics, lead data. They can prove ROI to their stakeholders with actual numbers. Less back-and-forth for the organizer because sponsors are self-sufficient.
+
+Q: How does the CRM work?
+A: Built into the platform. Contacts auto-populate from registration. Classify leads as warm, cold, or hot. Multi-channel outreach through email, WhatsApp, and surveys. Full engagement tracking tied to each contact's event history. Automated email verification.
+
+Q: How does gamification work?
+A: Leaderboards, trivia, live polls, spin-to-win wheels, photo booths, and a reward points system. Attendees earn points for visiting booths, attending sessions, and completing surveys. There is a marketplace where they redeem rewards. Drives real participation and booth traffic.
+
+Q: How do analytics work?
+A: Full picture in one hub — attendance demographics, ticket revenue, individual attendee activity from login to logout, real-time event data, session ratings, and dedicated sponsor dashboards.
+
+Q: How does the event website builder work?
+A: No-code drag-and-drop. Fully branded with custom colors, logos, speaker pages, sponsor sections. Mobile-responsive. White-label with custom domain. Professional event site live in minutes.
+
+Q: What marketing tools are included?
+A: Email campaigns, WhatsApp messaging, SMS, push notifications. Automated reminders. Campaign analytics with open rates and engagement. Full communication history per contact.
+
+Q: What integrations does EventTitans have?
+A: 5,000+ apps through Zapier. Native Zoom integration. Custom API for enterprise teams with full documentation.
+
+Q: Does EventTitans support virtual and hybrid events?
+A: Full support — 2D and 3D virtual lobbies, Zoom integration, virtual booths, leaderboards, attendee behavior tracking. Hybrid events run both in-person and virtual from one dashboard with the same analytics and CRM.
+
+Q: What real clients use EventTitans?
+A: Poultry India Expo with 50,000+ attendees, JITO, TiE, IndiaJoy, Indian Pharma Fair, BAR Event Group, ASPA South Florida, Maurice A. Ferre Institute. Over 2,000 companies total. Recognized on G2, Capterra, and SourceForge.
+
+Q: What social proof can I mention?
+A: Large scale — 50,000+ attendee expos. Volume — 2,000+ companies. Notable names — TiE, JITO, IndiaJoy. Recognition — G2, Capterra, SourceForge. Recurring trust — clients who have run 10+ events on the platform. Pick whichever matches the prospect best.
+
+Q: How is EventTitans different from Eventbrite?
+A: Eventbrite is mainly ticketing. EventTitans is all-in-one — ticketing plus CRM, gamification, badge printing, analytics, marketing. Organizers who switch say they were tired of stitching five tools together.
+
+Q: How is EventTitans different from Whova?
+A: Whova focuses on networking and agenda. EventTitans adds donation management, auctions, gamification with leaderboards, and a rewards marketplace on top.
+
+Q: How is EventTitans different from Bizzabo?
+A: Bizzabo prices for enterprise only. EventTitans serves all sizes — 200-person workshops to 50,000+ attendee expos. Also has fundraising tools and auto-generated event sites.
+
+Q: How is EventTitans different from Hopin?
+A: Hopin is virtual only. EventTitans does in-person, virtual, and hybrid — plus on-ground features like badge printing and QR check-in.
+
+Q: What is the strongest competitive edge?
+A: Three things: truly all-in-one with 150+ features, competitive pricing, and on-ground capabilities most platforms skip — badge printing, QR check-in, on-site registration.

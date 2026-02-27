@@ -1,0 +1,435 @@
+{
+  "name": "US Leads - Lead Merge for Retell Calling",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "wait-3-seconds",
+      "name": "Wait 3 Seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [220, 400],
+      "webhookId": "wait-3-sec-us"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1bKvWR2SN03ZjwSrs6cKrN_nkzaDo-PoMiC6vCfVQdz0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "read-master-queue",
+      "name": "Read Master Queue FIRST",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [480, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "to1E3r4Jf6AFsLfF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1CNyXDfhYii-pfC5CQH9-F_7FxQGr8qiYSEp3jpYeIDg"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 147498312,
+          "cachedResultName": "usa-tradeindia",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CNyXDfhYii-pfC5CQH9-F_7FxQGr8qiYSEp3jpYeIDg/edit#gid=147498312"
+        },
+        "options": {}
+      },
+      "id": "read-usa-tradeindia",
+      "name": "Read USA-TradeIndia",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [480, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "to1E3r4Jf6AFsLfF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SOURCE_SHEET_2_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "options": {}
+      },
+      "id": "read-usa-eventseye",
+      "name": "Read USA-EventsEye",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [480, 560],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "to1E3r4Jf6AFsLfF",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SOURCE_SHEET_3_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "options": {}
+      },
+      "id": "read-usa-10times",
+      "name": "Read USA-10Times",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [480, 720],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "to1E3r4Jf6AFsLfF",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_SOURCE_SHEET_4_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "options": {}
+      },
+      "id": "read-usa-expodata",
+      "name": "Read USA-ExpoData",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [480, 880],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "to1E3r4Jf6AFsLfF",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "id": "merge-sources",
+      "name": "Merge Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [760, 640]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\n\nfunction cleanString(str) {\n  if (!str) return '';\n  return String(str).toLowerCase().replace(/[^a-z0-9]/g, '').trim();\n}\n\nfunction getDomain(website) {\n  if (!website) return null;\n  try {\n    let url = String(website).trim().toLowerCase();\n    if (!url.startsWith('http')) url = 'https://' + url;\n    return new URL(url).hostname.replace(/^www\\./, '').split('.')[0];\n  } catch (e) {\n    return null;\n  }\n}\n\nfunction normalizeEventName(name) {\n  if (!name) return '';\n  return String(name).toLowerCase()\n    .replace(/\\d{4}/g, '')\n    .replace(/\\b(expo|exhibition|fair|show|conference|summit|meet|usa|america|international|national|annual)\\b/gi, '')\n    .replace(/[^a-z]/g, '')\n    .slice(0, 20);\n}\n\nfunction getMonthYear(dateStr) {\n  if (!dateStr) return '';\n  return String(dateStr).replace(/[^0-9]/g, '').slice(0, 6);\n}\n\nfunction toStringList(value) {\n  if (!value) return '';\n  if (Array.isArray(value)) return value.join(', ');\n  return String(value);\n}\n\n// Extract ALL valid US phones from a lead\nfunction extractAllPhones(phoneValue) {\n  if (!phoneValue) return [];\n  const raw = Array.isArray(phoneValue) ? phoneValue.map(String) : String(phoneValue).split(',');\n  const phones = [];\n  for (const r of raw) {\n    let digits = r.replace(/[^0-9]/g, '');\n    if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);\n    if (digits.length === 10 && /^[2-9]/.test(digits)) {\n      if (/^(\\d)\\1{9}$/.test(digits)) continue;\n      if (digits.startsWith('555') && digits.slice(3, 6) === '555') continue;\n      const normalized = '+1' + digits;\n      if (!phones.includes(normalized)) phones.push(normalized);\n    }\n  }\n  return phones.slice(0, 3);\n}\n\nfunction getPrimaryEmail(emails) {\n  if (!emails) return null;\n  let list = Array.isArray(emails) ? emails.map(e => String(e).trim().toLowerCase()) : String(emails).split(',').map(e => e.trim().toLowerCase());\n  return list.filter(e => e && e.includes('@'))[0] || null;\n}\n\nfunction generateAllKeys(lead) {\n  const keys = new Set();\n  const domain = getDomain(lead.official_website);\n  const eventName = normalizeEventName(lead.event_name);\n  const city = cleanString(lead.city);\n  const venue = cleanString(lead.venue);\n  const monthYear = getMonthYear(lead.fair_date);\n  const allPhones = extractAllPhones(lead.phones);\n  const email = getPrimaryEmail(lead.emails);\n\n  if (domain && domain.length > 2) keys.add('web_' + domain);\n  if (eventName && city && monthYear) keys.add('evt_' + eventName + '_' + city + '_' + monthYear);\n  if (eventName && venue && venue.length > 2) keys.add('evt_' + eventName + '_' + venue);\n  if (eventName && city) keys.add('evt_' + eventName + '_' + city);\n  for (const phone of allPhones) {\n    keys.add('phone_' + phone.replace(/\\D/g, '').slice(-10));\n  }\n  if (email) keys.add('email_' + email);\n  return keys;\n}\n\n// Group duplicates\nconst leadGroups = [];\nconst keyToGroupIndex = new Map();\n\nfor (let i = 0; i < items.length; i++) {\n  const lead = items[i];\n  const leadKeys = generateAllKeys(lead);\n  if (leadKeys.size === 0) {\n    leadGroups.push({ leads: [{ ...lead, _index: i }], allKeys: new Set(['unique_' + i]) });\n    continue;\n  }\n  let matchedGroupIndex = null;\n  for (const key of leadKeys) {\n    if (keyToGroupIndex.has(key)) {\n      matchedGroupIndex = keyToGroupIndex.get(key);\n      break;\n    }\n  }\n  if (matchedGroupIndex !== null) {\n    const group = leadGroups[matchedGroupIndex];\n    group.leads.push({ ...lead, _index: i });\n    for (const key of leadKeys) {\n      group.allKeys.add(key);\n      keyToGroupIndex.set(key, matchedGroupIndex);\n    }\n  } else {\n    const newGroupIndex = leadGroups.length;\n    leadGroups.push({ leads: [{ ...lead, _index: i }], allKeys: leadKeys });\n    for (const key of leadKeys) {\n      keyToGroupIndex.set(key, newGroupIndex);\n    }\n  }\n}\n\n// Merge groups - collect up to 3 unique phones across all duplicates\nconst output = [];\nfor (const group of leadGroups) {\n  const leads = group.leads;\n  const totalCount = leads.length;\n  const sources = [...new Set(leads.map(l => l.source || 'unknown'))];\n\n  const bestLead = leads.reduce((best, current) => {\n    const getScore = (l) => {\n      const phoneStr = toStringList(l.phones);\n      const emailStr = toStringList(l.emails);\n      return (phoneStr.split(',').filter(Boolean).length || 0) * 3 +\n             (emailStr.split(',').filter(Boolean).length || 0) * 1 +\n             (l.official_website ? 2 : 0) +\n             (l.event_name?.length || 0) / 10;\n    };\n    return getScore(current) > getScore(best) ? current : best;\n  }, leads[0]);\n\n  // Collect all unique phones across all duplicate leads (up to 3)\n  const allPhones = [];\n  const seenDigits = new Set();\n  for (const lead of leads) {\n    const phones = extractAllPhones(lead.phones);\n    for (const p of phones) {\n      const d = p.replace(/\\D/g, '').slice(-10);\n      if (!seenDigits.has(d)) {\n        seenDigits.add(d);\n        allPhones.push(p);\n        if (allPhones.length >= 3) break;\n      }\n    }\n    if (allPhones.length >= 3) break;\n  }\n\n  const allEmails = [...new Set(leads.flatMap(l =>\n    toStringList(l.emails).split(',').map(e => e.trim().toLowerCase()).filter(e => e && e.includes('@'))\n  ))];\n\n  output.push({\n    json: {\n      ...bestLead,\n      _phone_1: allPhones[0] || '',\n      _phone_2: allPhones[1] || '',\n      _phone_3: allPhones[2] || '',\n      phones: allPhones.join(', '),\n      emails: allEmails.length > 0 ? allEmails.join(', ') : null,\n      phone_count: allPhones.length,\n      email_count: allEmails.length,\n      _has_duplicates: totalCount > 1,\n      _total_occurrences: totalCount,\n      _duplicates_removed: totalCount - 1,\n      _unique_sources: sources.join(', '),\n      _source_count: sources.length,\n      _matched_keys: [...group.allKeys].slice(0, 5).join(' | '),\n      _is_cross_source_dupe: sources.length > 1\n    }\n  });\n}\n\noutput.sort((a, b) => b.json.phone_count - a.json.phone_count);\nreturn output;"
+      },
+      "id": "dedupe-within-batch",
+      "name": "Dedupe Within Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 640]
+    },
+    {
+      "parameters": {},
+      "id": "wait-for-both-paths",
+      "name": "Wait For Both Paths",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [1240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all().map(i => i.json);\n\nconst masterQueue = allItems.filter(item => item.lead_id);\nconst sourceLeads = allItems.filter(item => !item.lead_id);\n\nconsole.log('Master Queue: ' + masterQueue.length + ' existing leads');\nconsole.log('Source Leads: ' + sourceLeads.length + ' deduplicated leads');\n\nfunction toString(val) {\n  if (!val) return '';\n  if (Array.isArray(val)) return val.filter(Boolean).join(', ');\n  return String(val).trim();\n}\n\nfunction normalizeUSPhone(phoneStr) {\n  if (!phoneStr) return '';\n  const list = String(phoneStr).split(',');\n  for (const raw of list) {\n    let digits = raw.replace(/[^0-9]/g, '');\n    if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);\n    if (digits.length === 10 && /^[2-9]/.test(digits)) {\n      if (/^(\\d)\\1{9}$/.test(digits)) continue;\n      if (digits.startsWith('555') && digits.slice(3, 6) === '555') continue;\n      return '+1' + digits;\n    }\n  }\n  return '';\n}\n\nfunction getPrimaryEmail(emails) {\n  if (!emails) return '';\n  const list = String(emails).split(',');\n  const valid = list.map(e => e.trim().toLowerCase()).filter(e => \n    e && e.includes('@') && !e.includes('example.com') && !e.includes('test@')\n  );\n  return valid[0] || '';\n}\n\nfunction parseEventDate(dateStr) {\n  if (!dateStr) return null;\n  const str = String(dateStr).trim();\n  if (!str) return null;\n  const months = {\n    'jan': 0, 'january': 0, 'feb': 1, 'february': 1, 'mar': 2, 'march': 2,\n    'apr': 3, 'april': 3, 'may': 4, 'jun': 5, 'june': 5, 'jul': 6, 'july': 6,\n    'aug': 7, 'august': 7, 'sep': 8, 'sept': 8, 'september': 8,\n    'oct': 9, 'october': 9, 'nov': 10, 'november': 10, 'dec': 11, 'december': 11\n  };\n  function parseSingleDate(s) {\n    if (!s) return null;\n    s = s.trim();\n    let parsed = new Date(s);\n    if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2020) return parsed;\n    const monthNameMatch = s.match(/(\\d{1,2})?[\\s,]*(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*[\\s,]*(\\d{1,2})?[\\s,]*(\\d{4})/i);\n    if (monthNameMatch) {\n      const month = months[monthNameMatch[2].toLowerCase()];\n      const day = parseInt(monthNameMatch[1] || monthNameMatch[3]) || 1;\n      const year = parseInt(monthNameMatch[4]);\n      if (month !== undefined && year > 2020) return new Date(year, month, day);\n    }\n    const ddmmyyyy = s.match(/(\\d{1,2})[-\\/](\\d{1,2})[-\\/](\\d{4})/);\n    if (ddmmyyyy) {\n      const day = parseInt(ddmmyyyy[1]);\n      const month = parseInt(ddmmyyyy[2]) - 1;\n      const year = parseInt(ddmmyyyy[3]);\n      if (year > 2020 && month >= 0 && month <= 11) return new Date(year, month, day);\n    }\n    const yyyymmdd = s.match(/(\\d{4})[-\\/](\\d{1,2})[-\\/](\\d{1,2})/);\n    if (yyyymmdd) {\n      const year = parseInt(yyyymmdd[1]);\n      const month = parseInt(yyyymmdd[2]) - 1;\n      const day = parseInt(yyyymmdd[3]);\n      if (year > 2020) return new Date(year, month, day);\n    }\n    const yearMatch = s.match(/20(2[4-9]|3[0-9])/);\n    const monthMatch = s.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)/i);\n    if (yearMatch && monthMatch) {\n      const year = parseInt('20' + yearMatch[1]);\n      const month = months[monthMatch[1].toLowerCase()];\n      return new Date(year, month, 15);\n    }\n    return null;\n  }\n  // Handle date ranges like 'Fri, 30 Jan, 2026 - Sun, 01 Feb, 2026'\n  const rangeSeparators = [' - ', ' to ', ' – ', ' — '];\n  for (const sep of rangeSeparators) {\n    if (str.includes(sep)) {\n      const parts = str.split(sep);\n      if (parts.length === 2) {\n        const endPart = parts[1].trim();\n        const startPart = parts[0].trim();\n        // End part may lack year, borrow from start part\n        const yearFromStart = startPart.match(/(\\d{4})/);\n        let endDate = parseSingleDate(endPart);\n        if (!endDate && yearFromStart) {\n          endDate = parseSingleDate(endPart + ' ' + yearFromStart[1]);\n        }\n        if (endDate) return endDate;\n        // Fallback to start date if end date fails\n        const startDate = parseSingleDate(startPart);\n        if (startDate) return startDate;\n      }\n    }\n  }\n  // No range found, parse as single date\n  return parseSingleDate(str);\n}\n\nfunction calculatePriority(dateStr, phoneCount) {\n  const eventDate = parseEventDate(dateStr);\n  // Phone bonus: +100 base, +50 for phone_2, +25 for phone_3\n  const phoneBonus = phoneCount >= 1 ? 100 : 0;\n  const phone2Bonus = phoneCount >= 2 ? 50 : 0;\n  const phone3Bonus = phoneCount >= 3 ? 25 : 0;\n  const totalPhoneBonus = phoneBonus + phone2Bonus + phone3Bonus;\n\n  if (!eventDate) return 100 + totalPhoneBonus;\n\n  const now = new Date();\n  const daysUntil = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));\n  let score;\n  if (daysUntil < 0) {\n    // PAST EVENT: hard cap at 50 max, phone bonus capped at 25\n    // Past events should NEVER outrank future events\n    const pastScore = Math.max(5, 40 + daysUntil);\n    const pastPhoneBonus = Math.min(totalPhoneBonus, 25);\n    return Math.min(pastScore + pastPhoneBonus, 50);\n  } else if (daysUntil <= 7) {\n    score = 500;\n  } else if (daysUntil <= 14) {\n    score = 450;\n  } else if (daysUntil <= 30) {\n    score = 400;\n  } else if (daysUntil <= 60) {\n    score = 300;\n  } else if (daysUntil <= 90) {\n    score = 250;\n  } else if (daysUntil <= 120) {\n    score = 200;\n  } else if (daysUntil <= 180) {\n    score = 150;\n  } else {\n    score = Math.max(100, 150 - Math.floor((daysUntil - 180) / 30) * 10);\n  }\n  return score + totalPhoneBonus;\n}\n\nfunction getEventName(lead) {\n  return lead.event_name || lead.fair_name || '';\n}\nfunction getCompanyName(lead) {\n  return lead.organizer_name || lead.company || lead.contact_persons || '';\n}\nfunction getContactName(lead) {\n  return lead.contact_persons || lead.organizer_name || lead.name || 'Event Organizer';\n}\nfunction getSource(lead) {\n  if (lead.source && lead.source !== 'unknown') return lead.source;\n  if (lead._unique_sources && lead._unique_sources !== 'unknown') return lead._unique_sources;\n  if (lead.tradeindia_url) return 'tradeindia';\n  return 'scraped';\n}\n\n// Build existing keys for dedup against master queue\nconst existingPhones = new Set();\nconst existingEmails = new Set();\n\nfor (const lead of masterQueue) {\n  // Check phone_1, phone_2, phone_3, and legacy phone field\n  for (const field of ['phone_1', 'phone_2', 'phone_3', 'phone']) {\n    if (lead[field]) {\n      const digits = String(lead[field]).replace(/\\D/g, '').slice(-10);\n      if (digits.length === 10) existingPhones.add(digits);\n    }\n  }\n  if (lead.email) existingEmails.add(String(lead.email).toLowerCase().trim());\n}\n\nlet lastLeadNum = 0;\nfor (const lead of masterQueue) {\n  if (lead.lead_id) {\n    const match = String(lead.lead_id).match(/USL-(\\d+)/);\n    if (match) {\n      const num = parseInt(match[1]);\n      if (num > lastLeadNum) lastLeadNum = num;\n    }\n  }\n}\n\nconst newLeads = [];\nconst today = new Date().toISOString().split('T')[0];\nconst addedPhones = new Set();\nconst addedEmails = new Set();\n\nfor (const lead of sourceLeads) {\n  const phone1 = lead._phone_1 || normalizeUSPhone(lead.phones);\n  const phone2 = lead._phone_2 || '';\n  const phone3 = lead._phone_3 || '';\n  const email = getPrimaryEmail(lead.emails);\n\n  // MUST have at least phone_1 for Retell calling\n  if (!phone1) continue;\n\n  // Dedup phone_1 against master queue and this batch\n  const phone1Digits = phone1.replace(/\\D/g, '').slice(-10);\n  if (existingPhones.has(phone1Digits)) continue;\n  if (addedPhones.has(phone1Digits)) continue;\n\n  // Also check phone_2 and phone_3 for duplicates\n  const phone2Digits = phone2 ? phone2.replace(/\\D/g, '').slice(-10) : '';\n  const phone3Digits = phone3 ? phone3.replace(/\\D/g, '').slice(-10) : '';\n  if (phone2Digits && existingPhones.has(phone2Digits)) continue;\n  if (phone3Digits && existingPhones.has(phone3Digits)) continue;\n  if (email && existingEmails.has(email)) continue;\n\n  addedPhones.add(phone1Digits);\n  existingPhones.add(phone1Digits);\n  if (phone2Digits) { addedPhones.add(phone2Digits); existingPhones.add(phone2Digits); }\n  if (phone3Digits) { addedPhones.add(phone3Digits); existingPhones.add(phone3Digits); }\n  if (email) { addedEmails.add(email); existingEmails.add(email); }\n\n  lastLeadNum++;\n  const leadId = 'USL-' + String(lastLeadNum).padStart(5, '0');\n  const phoneCount = [phone1, phone2, phone3].filter(Boolean).length;\n  const priorityScore = calculatePriority(lead.fair_date || '', phoneCount);\n\n  newLeads.push({\n    json: {\n      lead_id: leadId,\n      name: getContactName(lead),\n      company: getCompanyName(lead),\n      phone_1: phone1,\n      phone_2: phone2,\n      phone_3: phone3,\n      current_phone_index: '1',\n      phone_1_status: 'pending',\n      phone_2_status: phone2 ? 'pending' : '',\n      phone_3_status: phone3 ? 'pending' : '',\n      email: email,\n      event_name: getEventName(lead),\n      event_date: toString(lead.fair_date),\n      venue: toString(lead.venue),\n      city: toString(lead.city),\n      added_date: today,\n      priority_score: priorityScore,\n      call_status: 'pending',\n      call_attempts: 0,\n      last_call_date: '',\n      next_call_date: '',\n      retell_call_id: '',\n      call_duration: '',\n      call_transcript: '',\n      recording_url: '',\n      user_sentiment: '',\n      disconnection_reason: '',\n      call_outcome: '',\n      interest_level: '',\n      call_summary: '',\n      meeting_scheduled: '',\n      email_captured: '',\n      objection_reason: '',\n      callback_time: '',\n      decision_maker: '',\n      pain_points: '',\n      next_steps: '',\n      follow_up_status: '',\n      alert_sent: '',\n      alert_sent_date: '',\n      demo_scheduled: '',\n      call_successful: '',\n      call_cost: '',\n      agent_id: ''\n    }\n  });\n}\n\nnewLeads.sort((a, b) => b.json.priority_score - a.json.priority_score);\nconsole.log('NEW US leads to add: ' + newLeads.length);\n\nif (newLeads.length === 0) {\n  return [{\n    json: {\n      _status: 'NO_NEW_LEADS',\n      message: 'No new leads with valid US phone numbers found',\n      master_queue_count: masterQueue.length,\n      source_leads_checked: sourceLeads.length\n    }\n  }];\n}\n\nreturn newLeads;"
+      },
+      "id": "compare-transform",
+      "name": "Compare & Transform",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1480, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "has-new-leads",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json._status }}",
+              "rightValue": "NO_NEW_LEADS"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "has-new-leads",
+      "name": "Has New Leads?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1720, 400]
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "id": "split-in-batches",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1960, 320]
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "wait-2-seconds",
+      "name": "Wait 2 Seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2200, 320],
+      "webhookId": "wait-2-sec-us"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1bKvWR2SN03ZjwSrs6cKrN_nkzaDo-PoMiC6vCfVQdz0"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {"id": "lead_id", "displayName": "lead_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "name", "displayName": "name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "company", "displayName": "company", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "phone_1", "displayName": "phone_1", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "phone_2", "displayName": "phone_2", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "phone_3", "displayName": "phone_3", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "current_phone_index", "displayName": "current_phone_index", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false, "removed": false},
+            {"id": "phone_1_status", "displayName": "phone_1_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false, "removed": false},
+            {"id": "phone_2_status", "displayName": "phone_2_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false, "removed": false},
+            {"id": "phone_3_status", "displayName": "phone_3_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false, "removed": false},
+            {"id": "email", "displayName": "email", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "event_name", "displayName": "event_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "event_date", "displayName": "event_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "venue", "displayName": "venue", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "city", "displayName": "city", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "added_date", "displayName": "added_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "priority_score", "displayName": "priority_score", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_status", "displayName": "call_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_attempts", "displayName": "call_attempts", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "last_call_date", "displayName": "last_call_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "next_call_date", "displayName": "next_call_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "retell_call_id", "displayName": "retell_call_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_duration", "displayName": "call_duration", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_transcript", "displayName": "call_transcript", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "recording_url", "displayName": "recording_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "user_sentiment", "displayName": "user_sentiment", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "disconnection_reason", "displayName": "disconnection_reason", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_outcome", "displayName": "call_outcome", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "interest_level", "displayName": "interest_level", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_summary", "displayName": "call_summary", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "meeting_scheduled", "displayName": "meeting_scheduled", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "email_captured", "displayName": "email_captured", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "objection_reason", "displayName": "objection_reason", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "callback_time", "displayName": "callback_time", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "decision_maker", "displayName": "decision_maker", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "pain_points", "displayName": "pain_points", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "next_steps", "displayName": "next_steps", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "follow_up_status", "displayName": "follow_up_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "alert_sent", "displayName": "alert_sent", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "alert_sent_date", "displayName": "alert_sent_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "demo_scheduled", "displayName": "demo_scheduled", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_successful", "displayName": "call_successful", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "call_cost", "displayName": "call_cost", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false},
+            {"id": "agent_id", "displayName": "agent_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false}
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "append-to-master",
+      "name": "Append to Master Queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2440, 320],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "to1E3r4Jf6AFsLfF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-new-leads",
+      "name": "No New Leads",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1960, 520]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [{"node": "Wait 3 Seconds", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait 3 Seconds": {
+      "main": [
+        [
+          {"node": "Read Master Queue FIRST", "type": "main", "index": 0},
+          {"node": "Read USA-TradeIndia", "type": "main", "index": 0},
+          {"node": "Read USA-EventsEye", "type": "main", "index": 0},
+          {"node": "Read USA-10Times", "type": "main", "index": 0},
+          {"node": "Read USA-ExpoData", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Read Master Queue FIRST": {
+      "main": [
+        [{"node": "Wait For Both Paths", "type": "main", "index": 0}]
+      ]
+    },
+    "Read USA-TradeIndia": {
+      "main": [
+        [{"node": "Merge Sources", "type": "main", "index": 0}]
+      ]
+    },
+    "Read USA-EventsEye": {
+      "main": [
+        [{"node": "Merge Sources", "type": "main", "index": 1}]
+      ]
+    },
+    "Read USA-10Times": {
+      "main": [
+        [{"node": "Merge Sources", "type": "main", "index": 2}]
+      ]
+    },
+    "Read USA-ExpoData": {
+      "main": [
+        [{"node": "Merge Sources", "type": "main", "index": 3}]
+      ]
+    },
+    "Merge Sources": {
+      "main": [
+        [{"node": "Dedupe Within Batch", "type": "main", "index": 0}]
+      ]
+    },
+    "Dedupe Within Batch": {
+      "main": [
+        [{"node": "Wait For Both Paths", "type": "main", "index": 1}]
+      ]
+    },
+    "Wait For Both Paths": {
+      "main": [
+        [{"node": "Compare & Transform", "type": "main", "index": 0}]
+      ]
+    },
+    "Compare & Transform": {
+      "main": [
+        [{"node": "Has New Leads?", "type": "main", "index": 0}]
+      ]
+    },
+    "Has New Leads?": {
+      "main": [
+        [{"node": "Split In Batches", "type": "main", "index": 0}],
+        [{"node": "No New Leads", "type": "main", "index": 0}]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [],
+        [{"node": "Wait 2 Seconds", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait 2 Seconds": {
+      "main": [
+        [{"node": "Append to Master Queue", "type": "main", "index": 0}]
+      ]
+    },
+    "Append to Master Queue": {
+      "main": [
+        [{"node": "Split In Batches", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {"name": "EventTitans"},
+    {"name": "Retell AI"},
+    {"name": "Cold Calling"}
+  ]
+}

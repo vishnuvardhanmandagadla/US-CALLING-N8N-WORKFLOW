@@ -1,0 +1,198 @@
+{
+  "name": "US Leads - Call Ended",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "retell-call-ended",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "retell-webhook-ended",
+      "name": "Retell Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "retell-call-ended"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "filter-call-ended",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "call_ended",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-call-ended-event",
+      "name": "Filter call_ended Event",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json;\nconst call = body.call || body;\nconst meta = call.metadata || {};\n\nconst durationMs = call.duration_ms || 0;\nconst durationSec = Math.round(durationMs / 1000);\nconst reason = call.disconnection_reason || 'unknown';\nconst phoneIndex = parseInt(meta.phone_index) || 1;\nconst currentAttempts = parseInt(meta.attempt) || 1;\nconst now = new Date();\n\n// Map disconnection reasons to phone status + fallback behavior\nconst reasonMap = {\n  'voicemail_reached': { phoneStatus: 'voicemail', canRetry: true, delayHours: 4, tryNext: false, success: false, stopAll: false },\n  'dial_no_answer': { phoneStatus: 'no_answer', canRetry: true, delayHours: 2, tryNext: false, success: false, stopAll: false },\n  'registered_call_timeout': { phoneStatus: 'no_answer', canRetry: true, delayHours: 2, tryNext: false, success: false, stopAll: false },\n  'error_user_not_joined': { phoneStatus: 'no_answer', canRetry: true, delayHours: 2, tryNext: false, success: false, stopAll: false },\n  'dial_busy': { phoneStatus: 'busy', canRetry: true, delayHours: 1, tryNext: false, success: false, stopAll: false },\n  'dial_failed': { phoneStatus: 'failed', canRetry: false, delayHours: 0, tryNext: true, success: false, stopAll: false },\n  'invalid_destination': { phoneStatus: 'invalid', canRetry: false, delayHours: 0, tryNext: true, success: false, stopAll: false },\n  'telephony_provider_permission_denied': { phoneStatus: 'failed', canRetry: false, delayHours: 0, tryNext: true, success: false, stopAll: false },\n  'telephony_provider_unavailable': { phoneStatus: 'failed', canRetry: false, delayHours: 0, tryNext: true, success: false, stopAll: false },\n  'sip_routing_error': { phoneStatus: 'failed', canRetry: false, delayHours: 0, tryNext: true, success: false, stopAll: false },\n  'user_hangup': { phoneStatus: 'connected', canRetry: false, delayHours: 0, tryNext: false, success: true, stopAll: false },\n  'agent_hangup': { phoneStatus: 'connected', canRetry: false, delayHours: 0, tryNext: false, success: true, stopAll: false },\n  'call_transfer': { phoneStatus: 'connected', canRetry: false, delayHours: 0, tryNext: false, success: true, stopAll: false },\n  'inactivity': { phoneStatus: 'connected', canRetry: false, delayHours: 0, tryNext: false, success: true, stopAll: false },\n  'max_duration_reached': { phoneStatus: 'connected', canRetry: false, delayHours: 0, tryNext: false, success: true, stopAll: false },\n  'user_declined': { phoneStatus: 'declined', canRetry: false, delayHours: 0, tryNext: false, success: false, stopAll: true },\n  'marked_as_spam': { phoneStatus: 'declined', canRetry: false, delayHours: 0, tryNext: false, success: false, stopAll: true },\n  'scam_detected': { phoneStatus: 'declined', canRetry: false, delayHours: 0, tryNext: false, success: false, stopAll: true },\n  'machine_detected': { phoneStatus: 'voicemail', canRetry: true, delayHours: 4, tryNext: false, success: false, stopAll: false },\n  'concurrency_limit_reached': { phoneStatus: 'retry', canRetry: true, delayHours: 0.5, tryNext: false, success: false, stopAll: false },\n  'no_valid_payment': { phoneStatus: 'failed', canRetry: false, delayHours: 0, tryNext: false, success: false, stopAll: true }\n};\n\nconst mapping = reasonMap[reason] || {\n  phoneStatus: reason.startsWith('error_') ? 'failed' : 'connected',\n  canRetry: false,\n  delayHours: reason.startsWith('error_') ? 2 : 0,\n  tryNext: reason.startsWith('error_'),\n  success: !reason.startsWith('error_'),\n  stopAll: false\n};\n\nconst MAX_RETRIES_PER_PHONE = 3;\nlet callStatus, callOutcome, nextCallDate = '', nextPhoneIndex = phoneIndex;\n\nif (mapping.stopAll) {\n  callStatus = 'not_interested';\n  callOutcome = 'DECLINED';\n} else if (mapping.success) {\n  callStatus = 'completed';\n  callOutcome = 'CONNECTED';\n} else if (mapping.tryNext) {\n  // Phone is permanently bad (invalid, dial_failed) — move to next\n  if (phoneIndex < 3) {\n    nextPhoneIndex = phoneIndex + 1;\n    callStatus = 'retry';\n    callOutcome = 'FAILED';\n    nextCallDate = new Date(now.getTime() + 60 * 60 * 1000).toISOString();\n  } else {\n    callStatus = 'exhausted';\n    callOutcome = 'FAILED';\n  }\n} else if (mapping.canRetry) {\n  if (currentAttempts >= MAX_RETRIES_PER_PHONE) {\n    // Exhausted retries on this phone — move to next\n    mapping.phoneStatus = 'failed';\n    if (phoneIndex < 3) {\n      nextPhoneIndex = phoneIndex + 1;\n      callStatus = 'retry';\n      callOutcome = mapping.phoneStatus.toUpperCase();\n      nextCallDate = new Date(now.getTime() + 60 * 60 * 1000).toISOString();\n    } else {\n      callStatus = 'exhausted';\n      callOutcome = mapping.phoneStatus.toUpperCase();\n    }\n  } else {\n    // Retry same phone later\n    callStatus = 'scheduled';\n    callOutcome = mapping.phoneStatus.toUpperCase();\n    nextCallDate = new Date(now.getTime() + mapping.delayHours * 60 * 60 * 1000).toISOString();\n  }\n} else {\n  callStatus = 'completed';\n  callOutcome = 'UNKNOWN';\n}\n\nreturn [{\n  json: {\n    lead_id: meta.lead_id || '',\n    retell_call_id: call.call_id || '',\n    phone_index: phoneIndex,\n    phone_status: mapping.phoneStatus,\n    call_status: callStatus,\n    call_outcome: callOutcome,\n    call_duration: durationSec,\n    call_attempts: String(currentAttempts),\n    disconnection_reason: reason,\n    recording_url: call.recording_url || '',\n    call_transcript: call.transcript || '',\n    next_call_date: nextCallDate,\n    next_phone_index: nextPhoneIndex,\n    last_call_date: now.toISOString(),\n    was_connected: mapping.success,\n    stop_all: mapping.stopAll\n  }\n}];"
+      },
+      "id": "extract-call-data",
+      "name": "Extract Call Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "has-lead-id-condition",
+              "leftValue": "={{ $json.lead_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-lead-id",
+      "name": "Has Lead ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build dynamic update object with correct phone_X_status field\nconst data = $input.item.json;\nconst phoneIndex = parseInt(data.phone_index) || 1;\n\nconst update = {\n  lead_id: data.lead_id,\n  retell_call_id: data.retell_call_id,\n  call_status: data.call_status,\n  call_outcome: data.call_outcome,\n  call_duration: data.call_duration,\n  call_attempts: data.call_attempts,\n  disconnection_reason: data.disconnection_reason,\n  recording_url: data.recording_url,\n  call_transcript: data.call_transcript,\n  next_call_date: data.next_call_date,\n  last_call_date: data.last_call_date,\n  current_phone_index: String(data.next_phone_index)\n};\n\n// Dynamically set the correct phone status\nif (phoneIndex === 1) update.phone_1_status = data.phone_status;\nif (phoneIndex === 2) update.phone_2_status = data.phone_status;\nif (phoneIndex === 3) update.phone_3_status = data.phone_status;\n\nreturn [{ json: update }];"
+      },
+      "id": "prepare-sheet-update",
+      "name": "Prepare Sheet Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "US_Leads_Master_Queue",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": ["lead_id"],
+          "schema": [
+            {"id": "retell_call_id", "displayName": "retell_call_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_status", "displayName": "call_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_outcome", "displayName": "call_outcome", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_duration", "displayName": "call_duration", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_attempts", "displayName": "call_attempts", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "disconnection_reason", "displayName": "disconnection_reason", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "recording_url", "displayName": "recording_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_transcript", "displayName": "call_transcript", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "next_call_date", "displayName": "next_call_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "last_call_date", "displayName": "last_call_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "current_phone_index", "displayName": "current_phone_index", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "phone_1_status", "displayName": "phone_1_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "phone_2_status", "displayName": "phone_2_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "phone_3_status", "displayName": "phone_3_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "lead_id", "displayName": "lead_id", "required": false, "defaultMatch": true, "display": true, "type": "string", "canBeUsedToMatch": true}
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-sheet-call-data",
+      "name": "Update Sheet with Call Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, -200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      },
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {},
+      "id": "ignore-event",
+      "name": "Ignore Event",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [440, 100]
+    },
+    {
+      "parameters": {},
+      "id": "log-missing-id",
+      "name": "Log Missing ID",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "Retell Webhook": {
+      "main": [
+        [{"node": "Filter call_ended Event", "type": "main", "index": 0}]
+      ]
+    },
+    "Filter call_ended Event": {
+      "main": [
+        [{"node": "Extract Call Data", "type": "main", "index": 0}],
+        [{"node": "Ignore Event", "type": "main", "index": 0}]
+      ]
+    },
+    "Extract Call Data": {
+      "main": [
+        [{"node": "Has Lead ID?", "type": "main", "index": 0}]
+      ]
+    },
+    "Has Lead ID?": {
+      "main": [
+        [{"node": "Prepare Sheet Update", "type": "main", "index": 0}],
+        [{"node": "Log Missing ID", "type": "main", "index": 0}]
+      ]
+    },
+    "Prepare Sheet Update": {
+      "main": [
+        [{"node": "Update Sheet with Call Data", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "tags": [
+    {"name": "EventTitans"},
+    {"name": "Retell AI"},
+    {"name": "Cold Calling"}
+  ]
+}

@@ -1,0 +1,360 @@
+{
+  "name": "US Leads - Call Analyzed",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "retell-call-analyzed",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "retell-webhook-analyzed",
+      "name": "Retell Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "retell-call-analyzed"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "filter-call-analyzed",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "call_analyzed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-call-analyzed-event",
+      "name": "Filter call_analyzed Event",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json;\nconst call = body.call || body;\nconst analysis = call.call_analysis || {};\nconst custom = analysis.custom_analysis_data || {};\nconst meta = call.metadata || {};\n\nconst phoneIndex = parseInt(meta.phone_index) || 1;\n\nlet callStatus = 'completed';\nlet followUpStatus = '';\nlet nextCallDate = '';\nconst interestLevel = custom.interest_level || 'NEUTRAL';\nconst now = new Date();\n\nswitch (interestLevel.toUpperCase()) {\n  case 'HOT':\n  case 'HOT_LEAD':\n    callStatus = 'hot_lead';\n    followUpStatus = 'urgent';\n    break;\n  case 'WARM':\n  case 'WARM_LEAD':\n    callStatus = 'warm_lead';\n    followUpStatus = 'pending';\n    nextCallDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];\n    break;\n  case 'CALLBACK':\n  case 'CALLBACK_REQUESTED':\n    callStatus = 'callback_scheduled';\n    followUpStatus = 'callback';\n    nextCallDate = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];\n    break;\n  case 'NOT_INTERESTED':\n    callStatus = 'not_interested';\n    followUpStatus = 'closed';\n    break;\n  case 'NEUTRAL':\n  case 'COLD':\n  case 'COLD_LEAD':\n  default:\n    callStatus = 'completed';\n    followUpStatus = 'nurture';\n    nextCallDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];\n}\n\nconst isHot = ['HOT', 'HOT_LEAD', 'CALLBACK', 'CALLBACK_REQUESTED'].includes(interestLevel.toUpperCase());\n\nlet phoneStatus = 'connected';\nif (interestLevel.toUpperCase() === 'NOT_INTERESTED') {\n  phoneStatus = 'declined';\n}\n\nconst durationSec = call.duration_ms ? Math.round(call.duration_ms / 1000) : 0;\n\nreturn [{\n  json: {\n    lead_id: meta.lead_id || '',\n    retell_call_id: call.call_id || '',\n    phone_index: phoneIndex,\n    phone_status: phoneStatus,\n    call_duration: durationSec,\n    recording_url: call.recording_url || '',\n    call_transcript: call.transcript || '',\n    disconnection_reason: call.disconnection_reason || '',\n    interest_level: interestLevel,\n    call_summary: analysis.call_summary || custom.call_summary || '',\n    meeting_scheduled: custom.meeting_scheduled === true ? 'TRUE' : 'FALSE',\n    email_captured: custom.email_captured || '',\n    objection_reason: custom.objection_reason || custom.objections || '',\n    callback_time: custom.callback_time || '',\n    decision_maker: custom.decision_maker === true ? 'TRUE' : 'FALSE',\n    pain_points: custom.pain_points || '',\n    next_steps: custom.next_steps || custom.recommended_action || '',\n    call_status: callStatus,\n    call_outcome: interestLevel,\n    follow_up_status: followUpStatus,\n    next_call_date: nextCallDate,\n    last_call_date: now.toISOString(),\n    is_hot: isHot,\n    user_sentiment: analysis.user_sentiment || '',\n    call_successful: analysis.call_successful === true ? 'TRUE' : analysis.call_successful === false ? 'FALSE' : '',\n    call_cost: call.cost ? String(call.cost) : '',\n    agent_id: call.agent_id || ''\n  }\n}];"
+      },
+      "id": "extract-all-data",
+      "name": "Extract All Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "has-lead-id-analyzed",
+              "leftValue": "={{ $json.lead_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-lead-id-analyzed",
+      "name": "Has Lead ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build dynamic update object with correct phone_X_status\nconst data = $input.item.json;\nconst phoneIndex = parseInt(data.phone_index) || 1;\n\nconst update = {\n  lead_id: data.lead_id,\n  retell_call_id: data.retell_call_id,\n  call_status: data.call_status,\n  call_outcome: data.call_outcome,\n  call_duration: data.call_duration,\n  recording_url: data.recording_url,\n  call_transcript: data.call_transcript,\n  disconnection_reason: data.disconnection_reason,\n  interest_level: data.interest_level,\n  call_summary: data.call_summary,\n  meeting_scheduled: data.meeting_scheduled,\n  email_captured: data.email_captured,\n  objection_reason: data.objection_reason,\n  callback_time: data.callback_time,\n  decision_maker: data.decision_maker,\n  pain_points: data.pain_points,\n  next_steps: data.next_steps,\n  follow_up_status: data.follow_up_status,\n  next_call_date: data.next_call_date,\n  last_call_date: data.last_call_date,\n  user_sentiment: data.user_sentiment,\n  call_successful: data.call_successful,\n  call_cost: data.call_cost,\n  agent_id: data.agent_id,\n  is_hot: data.is_hot\n};\n\n// Dynamically set the correct phone status\nif (phoneIndex === 1) update.phone_1_status = data.phone_status;\nif (phoneIndex === 2) update.phone_2_status = data.phone_status;\nif (phoneIndex === 3) update.phone_3_status = data.phone_status;\n\nreturn [{ json: update }];"
+      },
+      "id": "prepare-analysis-update",
+      "name": "Prepare Analysis Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "US_Leads_Master_Queue",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": ["lead_id"],
+          "schema": [
+            {"id": "retell_call_id", "displayName": "retell_call_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_status", "displayName": "call_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_outcome", "displayName": "call_outcome", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_duration", "displayName": "call_duration", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "recording_url", "displayName": "recording_url", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_transcript", "displayName": "call_transcript", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "disconnection_reason", "displayName": "disconnection_reason", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "interest_level", "displayName": "interest_level", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_summary", "displayName": "call_summary", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "meeting_scheduled", "displayName": "meeting_scheduled", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "email_captured", "displayName": "email_captured", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "objection_reason", "displayName": "objection_reason", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "callback_time", "displayName": "callback_time", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "decision_maker", "displayName": "decision_maker", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "pain_points", "displayName": "pain_points", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "next_steps", "displayName": "next_steps", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "follow_up_status", "displayName": "follow_up_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "next_call_date", "displayName": "next_call_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "last_call_date", "displayName": "last_call_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "user_sentiment", "displayName": "user_sentiment", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_successful", "displayName": "call_successful", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "call_cost", "displayName": "call_cost", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "agent_id", "displayName": "agent_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "phone_1_status", "displayName": "phone_1_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "phone_2_status", "displayName": "phone_2_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "phone_3_status", "displayName": "phone_3_status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "lead_id", "displayName": "lead_id", "required": false, "defaultMatch": true, "display": true, "type": "string", "canBeUsedToMatch": true}
+          ]
+        }
+      },
+      "id": "update-all-extracted-data",
+      "name": "Update All Extracted Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, -200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "is-hot-condition",
+              "leftValue": "={{ $('Prepare Analysis Update').item.json.is_hot }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-hot-or-callback",
+      "name": "Is HOT or CALLBACK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1320, -200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/YOUR_PHONE_NUMBER_ID/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"919XXXXXXXXX\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"\\ud83d\\udd25 HOT LEAD from AI Call!\\n\\nLead: {{ $('Prepare Analysis Update').item.json.lead_id }}\\nInterest: {{ $('Prepare Analysis Update').item.json.interest_level }}\\nSentiment: {{ $('Prepare Analysis Update').item.json.user_sentiment }}\\n\\nSummary: {{ $('Prepare Analysis Update').item.json.call_summary }}\\n\\n{{ $('Prepare Analysis Update').item.json.meeting_scheduled === 'TRUE' ? '\\ud83d\\udcc5 Meeting Requested!' : '' }}\\n{{ $('Prepare Analysis Update').item.json.callback_time ? '\\ud83d\\udcde Callback: ' + $('Prepare Analysis Update').item.json.callback_time : '' }}\\n\\n\\ud83c\\udfa7 Recording: {{ $('Prepare Analysis Update').item.json.recording_url }}\\n\\n\\u23f0 Follow up within 2 hours!\"\n  }\n}",
+        "options": {}
+      },
+      "id": "send-whatsapp-alert",
+      "name": "Send WhatsApp Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, -340],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@eventitans.com",
+        "toEmail": "your-sales-email@eventitans.com",
+        "subject": "=\\ud83d\\udd25 HOT LEAD: {{ $('Prepare Analysis Update').item.json.lead_id }} - {{ $('Prepare Analysis Update').item.json.interest_level }}",
+        "emailType": "html",
+        "html": "=<div style=\"font-family:Arial;max-width:600px\">\n<h2 style=\"color:#e74c3c\">\\ud83d\\udd25 Hot Lead Alert</h2>\n<table style=\"width:100%;border-collapse:collapse\">\n<tr><td style=\"padding:8px;border:1px solid #ddd\"><b>Lead ID</b></td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('Prepare Analysis Update').item.json.lead_id }}</td></tr>\n<tr><td style=\"padding:8px;border:1px solid #ddd\"><b>Interest</b></td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('Prepare Analysis Update').item.json.interest_level }}</td></tr>\n<tr><td style=\"padding:8px;border:1px solid #ddd\"><b>Sentiment</b></td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('Prepare Analysis Update').item.json.user_sentiment }}</td></tr>\n<tr><td style=\"padding:8px;border:1px solid #ddd\"><b>Duration</b></td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('Prepare Analysis Update').item.json.call_duration }}s</td></tr>\n<tr><td style=\"padding:8px;border:1px solid #ddd\"><b>Meeting?</b></td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('Prepare Analysis Update').item.json.meeting_scheduled }}</td></tr>\n<tr><td style=\"padding:8px;border:1px solid #ddd\"><b>Email Captured</b></td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('Prepare Analysis Update').item.json.email_captured || 'None' }}</td></tr>\n</table>\n<h3>Summary</h3>\n<p>{{ $('Prepare Analysis Update').item.json.call_summary }}</p>\n{{ $('Prepare Analysis Update').item.json.pain_points ? '<h3>Pain Points</h3><p>' + $('Prepare Analysis Update').item.json.pain_points + '</p>' : '' }}\n{{ $('Prepare Analysis Update').item.json.objection_reason ? '<h3>Objections</h3><p>' + $('Prepare Analysis Update').item.json.objection_reason + '</p>' : '' }}\n{{ $('Prepare Analysis Update').item.json.callback_time ? '<p style=\"background:#fdebd0;padding:15px;border-radius:5px\">\\ud83d\\udcde Callback: ' + $('Prepare Analysis Update').item.json.callback_time + '</p>' : '' }}\n<p><a href=\"{{ $('Prepare Analysis Update').item.json.recording_url }}\" style=\"background:#3498db;color:white;padding:12px 25px;text-decoration:none;border-radius:5px\">\\ud83c\\udfa7 Listen to Recording</a></p>\n<p style=\"color:#e74c3c;font-size:18px;text-align:center\"><b>\\u23f0 Follow up within 2 hours!</b></p>\n</div>",
+        "options": {}
+      },
+      "id": "send-email-alert",
+      "name": "Send Email Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1540, -140],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "US_Leads_Master_Queue",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_sent": "TRUE",
+            "alert_sent_date": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": ["lead_id"],
+          "schema": [
+            {"id": "alert_sent", "displayName": "alert_sent", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "alert_sent_date", "displayName": "alert_sent_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": false},
+            {"id": "lead_id", "displayName": "lead_id", "required": false, "defaultMatch": true, "display": true, "type": "string", "canBeUsedToMatch": true}
+          ]
+        }
+      },
+      "id": "mark-alert-sent",
+      "name": "Mark Alert Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1760, -240],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "ignore-event-analyzed",
+      "name": "Ignore Event",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [440, 100]
+    },
+    {
+      "parameters": {},
+      "id": "log-missing-analyzed",
+      "name": "Log Missing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {},
+      "id": "no-alert",
+      "name": "No Alert",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1540, 60]
+    }
+  ],
+  "connections": {
+    "Retell Webhook": {
+      "main": [
+        [{"node": "Filter call_analyzed Event", "type": "main", "index": 0}]
+      ]
+    },
+    "Filter call_analyzed Event": {
+      "main": [
+        [{"node": "Extract All Data", "type": "main", "index": 0}],
+        [{"node": "Ignore Event", "type": "main", "index": 0}]
+      ]
+    },
+    "Extract All Data": {
+      "main": [
+        [{"node": "Has Lead ID?", "type": "main", "index": 0}]
+      ]
+    },
+    "Has Lead ID?": {
+      "main": [
+        [{"node": "Prepare Analysis Update", "type": "main", "index": 0}],
+        [{"node": "Log Missing", "type": "main", "index": 0}]
+      ]
+    },
+    "Prepare Analysis Update": {
+      "main": [
+        [{"node": "Update All Extracted Data", "type": "main", "index": 0}]
+      ]
+    },
+    "Update All Extracted Data": {
+      "main": [
+        [{"node": "Is HOT or CALLBACK?", "type": "main", "index": 0}]
+      ]
+    },
+    "Is HOT or CALLBACK?": {
+      "main": [
+        [
+          {"node": "Send WhatsApp Alert", "type": "main", "index": 0},
+          {"node": "Send Email Alert", "type": "main", "index": 0}
+        ],
+        [{"node": "No Alert", "type": "main", "index": 0}]
+      ]
+    },
+    "Send WhatsApp Alert": {
+      "main": [
+        [{"node": "Mark Alert Sent", "type": "main", "index": 0}]
+      ]
+    },
+    "Send Email Alert": {
+      "main": [
+        [{"node": "Mark Alert Sent", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "tags": [
+    {"name": "EventTitans"},
+    {"name": "Retell AI"},
+    {"name": "Cold Calling"}
+  ]
+}
